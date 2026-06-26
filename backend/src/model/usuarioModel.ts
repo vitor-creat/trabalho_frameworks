@@ -1,51 +1,62 @@
-import type { RowDataPacket } from "mysql2"
+import type { ResultSetHeader, RowDataPacket } from "mysql2"
 import { connection } from "../database/connection.js"
 
-interface usuario{
+interface Usuario extends RowDataPacket{
     id: number
-    nome:string
-    email: string
-    data_cadastro: string
-    foto_perfil: string
+    nome?:string
+    email?: string
+    foto_perfil?: string
 }
 
-export class Usuario{
+export class UsuarioModel{
 
-    async create(nome:string, email:string, data_cadastro:string, foto_perfil:string) {
+    async create(nome:string, email:string, foto_perfil:string) {
         try {
-        await connection
-        .execute(
-            `INSERT INTO usuarios (nome, email, data_cadastro, foto_perfil) VALUES (?,?,?,?)`, 
-            [nome, email, data_cadastro, foto_perfil])
+        const [results] = await connection
+        .execute<ResultSetHeader>(
+            `INSERT INTO tb_usuario (nome, email, data_cadastro, foto_perfil) VALUES (?,?,?,?)`, 
+            [nome, email, new Date(), foto_perfil])
+            results.insertId
         } catch (error) {
             
         }
 
     }
 
-    async update(id:number, nome:string, email:string, data_cadastro:string, foto_perfil:string) {
+    async read(id:number){
+        try {
+            const [results] = await connection.execute<Usuario[]>(
+                `SELECT U.nome, U.foto_perfil FROM tb_usuario U WHERE id_usuario = ?`,
+                [id]
+            )
+            
+        } catch (error) {
+            
+        }
+    }
+
+    async update(id:number, nome:string, email:string, foto_perfil:string) {
         try {
             
             const [results] = await connection
-            .execute<RowDataPacket[]>(
-                `SELECT * FROM usuarios WHERE id_usuario = ?`,
+            .execute<Usuario[]>(
+                `SELECT * FROM tb_usuario WHERE id_usuario = ?`,
                 [id]
             )
             const dados = results[0]
             
             nome = nome ?? dados!.nome
             email = email ?? dados!.email
-            data_cadastro = data_cadastro ?? dados!.data_cadastro
             foto_perfil = foto_perfil ?? dados!.foto_perfil
             
             await connection
             .execute(
-                `UPDATE SET nome = ?, 
+                `UPDATE tb_usuario SET nome = ?, 
                 email = ?, 
                 data_cadastro = ?,
                 foto_perfil = ?
                 `,
-                [nome, email, data_cadastro, foto_perfil]
+                [nome, email, foto_perfil]
             )
         } catch (error) {
             
@@ -57,7 +68,7 @@ export class Usuario{
         try {
         await connection
         .execute(
-            `DELETE FROM usuarios WHERE id_usuario = ?`,
+            `DELETE FROM tb_usuario WHERE id_usuario = ?`,
             [id]
         )
         } catch (error) {
